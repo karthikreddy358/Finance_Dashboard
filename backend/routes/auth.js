@@ -1,0 +1,51 @@
+const express = require('express');
+const router = express.Router();
+const {
+  register,
+  login,
+  getMe,
+  logout,
+} = require('../controllers/authController');
+const { protect } = require('../middleware/auth');
+const { check } = require('express-validator');
+
+// Validation rules
+const registerValidation = [
+  check('name', 'Name is required').not().isEmpty(),
+  check('email', 'Please include a valid email').isEmail(),
+  check('password', 'Password must be 6+ characters').isLength({ min: 6 }),
+  check('role', 'Role must be admin, analyst, or viewer')
+    .optional()
+    .isIn(['admin', 'analyst', 'viewer']),
+];
+
+const loginValidation = [
+  check('email', 'Please include a valid email').isEmail(),
+  check('password', 'Password is required').not().isEmpty(),
+];
+
+router.post(
+  '/register',
+  registerValidation,
+  register
+);
+
+router.post(
+  '/login',
+  loginValidation,
+  login
+);
+
+router.get(
+  '/profile',
+  protect,
+  getMe
+);
+
+router.post(
+  '/logout',
+  protect,
+  logout
+);
+
+module.exports = router;

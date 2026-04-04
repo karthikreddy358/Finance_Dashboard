@@ -1,0 +1,76 @@
+import { createContext, useState, useContext, useEffect } from 'react';
+import { authAPI } from '../services/authService';
+
+const AuthContext = createContext(null);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is logged in by fetching profile
+    const initAuth = async () => {
+      try {
+        // Only try to fetch profile if we have a token cookie
+        const hasCookie = document.cookie.includes('token=');
+        if (!hasCookie) {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        const response = await authAPI.getProfile();
+        setUser(response.data);
+      } catch (error) {
+        // If profile fetch fails, clear any stale auth state
+        setUser(null);
+        // Optional: clear invalid cookie
+        document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      } finally {
+        setLoading(false);
+      }
+    };
+    initAuth();
+  }, []);
+
+  const login = async (email, password) => {
+    const response = await authAPI.login({ email, password });
+    setUser(response.data.user);
+    return response;
+  };
+
+  const register = async (name, email, password, role) => {
+    const response = await authAPI.register({ name, email, password, role });
+    setUser(response.data.user);
+    return response;
+  };
+
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+      // Clear cookie
+      document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Strict;';
+    } finally {
+      setUser(null);
+    }
+  };
+
+  const value = {
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};

@@ -25,12 +25,6 @@ npm install
 npm run dev
 ```
 
-## URLs
-
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:5000/api`
-- Health check: `http://localhost:5000/api/health`
-
 ## Demo Accounts
 
 - Admin: `admin@local.com` / `Admin@123`

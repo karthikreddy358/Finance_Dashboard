@@ -18,11 +18,7 @@ exports.register = async (req, res, next) => {
     }
 
     const isValidRole = ['admin', 'analyst', 'viewer'].includes(role);
-    const allowRoleSelection = process.env.NODE_ENV !== 'production';
-
-    // In local/dev environments, allow explicit role creation for testing.
-    // In production, force public registration to viewer.
-    const selectedRole = allowRoleSelection && isValidRole ? role : 'viewer';
+    const selectedRole = isValidRole ? role : 'viewer';
 
     const user = await User.create({
       name,

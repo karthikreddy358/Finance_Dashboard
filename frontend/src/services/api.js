@@ -49,7 +49,7 @@ api.interceptors.response.use(
       }
     } else if (error.request) {
       console.error('No response from server - is the backend running?');
-      alert('Cannot connect to server. Please make sure the backend is running on http://localhost:5000');
+      alert(`Cannot connect to server. Please make sure the backend is running at ${API_URL}`);
     } else {
       console.error('Request setup error:', error.message);
       alert(`Request error: ${error.message}`);

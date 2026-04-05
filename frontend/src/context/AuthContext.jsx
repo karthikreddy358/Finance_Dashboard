@@ -19,9 +19,8 @@ export const AuthProvider = ({ children }) => {
     // Check if user is logged in by fetching profile
     const initAuth = async () => {
       try {
-        // Only try to fetch profile if we have a token cookie
-        const hasCookie = document.cookie.includes('token=');
-        if (!hasCookie) {
+        const token = localStorage.getItem('token');
+        if (!token) {
           setUser(null);
           setLoading(false);
           return;
@@ -32,8 +31,7 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         // If profile fetch fails, clear any stale auth state
         setUser(null);
-        // Optional: clear invalid cookie
-        document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        localStorage.removeItem('token');
       } finally {
         setLoading(false);
       }
@@ -43,12 +41,18 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const response = await authAPI.login({ email, password });
+    if (response?.token) {
+      localStorage.setItem('token', response.token);
+    }
     setUser(response.data.user);
     return response;
   };
 
   const register = async (name, email, password, role) => {
     const response = await authAPI.register({ name, email, password, role });
+    if (response?.token) {
+      localStorage.setItem('token', response.token);
+    }
     setUser(response.data.user);
     return response;
   };
@@ -56,9 +60,8 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authAPI.logout();
-      // Clear cookie
-      document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Strict;';
     } finally {
+      localStorage.removeItem('token');
       setUser(null);
     }
   };

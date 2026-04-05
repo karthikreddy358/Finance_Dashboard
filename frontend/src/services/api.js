@@ -10,9 +10,15 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token if needed (we use cookies instead)
+// Attach bearer token when available. This avoids cross-site cookie edge cases.
 api.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
   (error) => Promise.reject(error)
 );
 

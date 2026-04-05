@@ -15,7 +15,7 @@ const sendToken = (user, statusCode, res) => {
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
   };
 
   if (process.env.JWT_EXPIRE) {

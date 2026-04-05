@@ -10,6 +10,14 @@ const Records = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [editForm, setEditForm] = useState({
+    amount: '',
+    type: 'expense',
+    category: '',
+    date: '',
+    notes: '',
+  });
 
   const loadRecords = async () => {
     try {
@@ -47,6 +55,57 @@ const Records = () => {
       await loadRecords();
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to delete transaction.');
+    }
+  };
+
+  const openEditModal = (tx) => {
+    setEditingRecord(tx);
+    setSuccess('');
+    setError('');
+    setEditForm({
+      amount: tx.amount,
+      type: tx.type,
+      category: tx.category || '',
+      date: tx.date ? new Date(tx.date).toISOString().slice(0, 10) : '',
+      notes: tx.notes || '',
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditingRecord(null);
+    setEditForm({
+      amount: '',
+      type: 'expense',
+      category: '',
+      date: '',
+      notes: '',
+    });
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (role !== 'admin' || !editingRecord) return;
+
+    try {
+      setError('');
+      setSuccess('');
+      await transactionAPI.update(editingRecord._id, {
+        amount: Number(editForm.amount),
+        type: editForm.type,
+        category: editForm.category.trim(),
+        date: editForm.date,
+        notes: editForm.notes.trim(),
+      });
+      setSuccess('Transaction updated successfully.');
+      closeEditModal();
+      await loadRecords();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to update transaction.');
     }
   };
 
@@ -115,15 +174,26 @@ const Records = () => {
                     </td>
                     {role === 'admin' && (
                       <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => handleDelete(tx._id)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Delete"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => openEditModal(tx)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            title="Edit"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.586a2 2 0 112.828 2.828L12 18H9v-3l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(tx._id)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -133,6 +203,110 @@ const Records = () => {
           </div>
         )}
       </div>
+
+      {role === 'admin' && editingRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Edit Transaction</h2>
+                <p className="text-sm text-gray-500">Update the record and save changes.</p>
+              </div>
+              <button
+                onClick={closeEditModal}
+                className="text-gray-400 hover:text-gray-600"
+                title="Close"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-gray-700">Amount</span>
+                  <input
+                    type="number"
+                    name="amount"
+                    value={editForm.amount}
+                    onChange={handleEditChange}
+                    min="0.01"
+                    step="0.01"
+                    required
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-green-500"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-sm font-medium text-gray-700">Type</span>
+                  <select
+                    name="type"
+                    value={editForm.type}
+                    onChange={handleEditChange}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-green-500"
+                  >
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                  </select>
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-gray-700">Category</span>
+                <input
+                  type="text"
+                  name="category"
+                  value={editForm.category}
+                  onChange={handleEditChange}
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-green-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-gray-700">Date</span>
+                <input
+                  type="date"
+                  name="date"
+                  value={editForm.date}
+                  onChange={handleEditChange}
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-green-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-medium text-gray-700">Notes</span>
+                <textarea
+                  name="notes"
+                  value={editForm.notes}
+                  onChange={handleEditChange}
+                  rows="3"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-green-500"
+                />
+              </label>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };
